@@ -1,6 +1,7 @@
 package gomemcached
 import (
     "net"
+    "io"
 )
 
 var Verbose bool
@@ -14,7 +15,10 @@ func parseRequest(conn net.Conn) (*Req, error) {
 func connHandler(conn net.Conn, handler ReqHandler) {
     defer conn.Close()
     for {
-        req := NewReqFromReader(conn)
+        req, err := ReadReqFromReader(conn)
+        if err != nil && err == io.EOF {
+            break
+        }
         if handler != nil {
             resp := NewResp(conn)
             if req == nil {

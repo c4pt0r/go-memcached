@@ -2,16 +2,10 @@ package gomemcached
 
 import (
     "testing"
-    "log"
+    "github.com/bradfitz/gomemcache/memcache"
 )
 
 func Test_Server(t *testing.T) {
-    ListenAndServe(":8088", func(request *Req, resp Resp) (error){
-        if request.Op() == OpSet {
-            log.Println("opSet")
-        } else {
-            resp.WriteResult(UnknownErr)
-        }
-        return nil
-    })
+    mc := memcache.New("127.0.0.1:8088")
+    mc.Set(&memcache.Item{Key: "foo", Value: []byte("my value")})
 }

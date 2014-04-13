@@ -5,6 +5,7 @@ import (
     "bufio"
     "strings"
     "strconv"
+    "errors"
 )
 
 type Req struct {
@@ -57,12 +58,13 @@ func (r *Req) NoReply() bool {
 }
 
 
-func NewReqFromReader(reader io.Reader) *Req {
+func ReadReqFromReader(reader io.Reader) (*Req, error) {
     r := bufio.NewReader(reader)
     line, _, err := r.ReadLine()
     if err != nil {
-        return nil
+        return nil, err
     }
+    log.Println(string(line))
     if parts := strings.Split(string(line), " "); len(parts) >0 {
         cmd := strings.ToUpper(parts[0])
         switch cmd {
@@ -78,7 +80,7 @@ func NewReqFromReader(reader io.Reader) *Req {
                 for _, key := range parts[1:] {
                     req.keys = append(req.keys, []byte(key))
                 }
-                return req
+                return req, nil
             }
 
             case OpSet: {
@@ -88,21 +90,21 @@ func NewReqFromReader(reader io.Reader) *Req {
                 flags, err := strconv.ParseUint(parts[2], 10, 16)
                 if err != nil {
                     log.Println(err)
-                    return nil
+                    return nil, err
                 }
                 req.flags = uint16(flags)
                 // parse exp
                 exp, err := strconv.ParseInt(parts[3], 10, 64)
                 if err != nil {
                     log.Println(err)
-                    return nil
+                    return nil, err
                 }
                 req.exp = exp
                 // parse bytes
                 blen, err := strconv.ParseInt(parts[4], 10, 64)
                 if err != nil {
                     log.Println(err)
-                    return nil
+                    return nil, err
                 }
                 // read value bytes
                 buf := make([]byte, blen)
@@ -111,7 +113,7 @@ func NewReqFromReader(reader io.Reader) *Req {
                     n , err := r.Read(buf[cur:])
                     if err != nil {
                         log.Println(err)
-                        return nil
+                        return nil, err
                     }
                     cur += int64(n)
                     if cur >= blen {
@@ -124,11 +126,11 @@ func NewReqFromReader(reader io.Reader) *Req {
                 r.Read(buf)
                 if string(buf) != CRLF {
                     log.Println("request not valid")
-                    return nil
+                    return nil , errors.New("request not valid")
                 }
-                return req
+                return req, nil
             }
         }
     }
-    return nil
+    return nil, errors.New("unknown error")
 }
